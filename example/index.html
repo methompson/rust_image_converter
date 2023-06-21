@@ -14,6 +14,7 @@
 <body>
   <div class='dropBox' id="drop">Drop On Me</div>
   <button id="btn">Press Me</button>
+  <canvas id="imgCanvas"></canvas>
 </body>
 
 <script type="module">
@@ -36,7 +37,12 @@
 
       const files = ev.dataTransfer?.files ?? [];
       for (const item of files) {
-        readFileAsBytes(item);
+        console.log('type:', item.type);
+        if (item.type === 'image/heic') {
+          drawHeic(item);
+        } else {
+          readFileAsBytes(item);
+        }
       }
     });
 
@@ -46,15 +52,48 @@
     });
   }
 
+  async function drawHeic(file) {
+    const scriptId = '#heicScript';
+    await new Promise((resolve, reject) => {
+      if (document.querySelector(scriptId) !== null) {
+        return;
+      }
+
+      const scriptEl = document.createElement("script");
+      scriptEl.id = scriptId;
+      scriptEl.setAttribute('src', '/heic2any.min.js');
+
+      scriptEl.addEventListener('load', () => {
+        console.log('Script Loaded');
+        resolve();
+      });
+
+      scriptEl.setAttribute("type", "text/javascript");
+      scriptEl.setAttribute("async", true);
+
+      document.body.appendChild(scriptEl);
+    });
+
+    console.log('working');
+
+    const conversion = await heic2any({
+      blob: file,
+      toType: 'image/png',
+    });
+
+    console.log('conversion', conversion);
+
+    const buff = await conversion.arrayBuffer();
+    const uint8Arr = new Uint8Array(buff);
+
+    makeFileFromBytes(uint8Arr);
+  }
+
   async function readFileAsBytes(file) {
     console.log(file instanceof File);
     const buf = await file.arrayBuffer();
 
-    console.log(buf);
-
     const uint8Arr = new Uint8Array(buf);
-
-    console.log(uint8Arr);
 
     try {
       const result = read_bytes(uint8Arr);
@@ -66,15 +105,7 @@
   }
 
   async function makeFileFromBytes(bytesArray) {
-    const b64encoded = btoa(String.fromCharCode(...bytesArray));
-    console.log('after b64encoded');
-
-    console.log(b64encoded);
-
-    // const file = new File(bytesArray, 'new image');
-    // console.log('file', file);
-
-    // const text = await file.text();
+    const b64encoded = arrayBufferToBase64(bytesArray);
 
     const downloadEl = document.createElement('a');
     downloadEl.setAttribute('href', 'data:image/jpeg;base64,' + encodeURIComponent(b64encoded));
@@ -83,9 +114,20 @@
     downloadEl.style.display = 'none';
     document.body.appendChild(downloadEl);
 
-    downloadEl.click();
+    // downloadEl.click();
 
     document.body.removeChild(downloadEl);
+  }
+
+  function arrayBufferToBase64(uint8Arr) {
+    let binary = '';
+    const len = uint8Arr.byteLength;
+
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(uint8Arr[i]);
+    }
+
+    return window.btoa(binary);
   }
 
   initialization();
