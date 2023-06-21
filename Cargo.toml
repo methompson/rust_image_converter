@@ -1,5 +1,5 @@
 [package]
-name = "hello_wasm"
+name = "rust_image_converter"
 version = "0.1.0"
 edition = "2021"
 
