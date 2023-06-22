@@ -1,21 +1,17 @@
 use image::error::ImageError;
 use image::io::Reader as ImageReader;
-use image::DynamicImage;
+use image::{DynamicImage, RgbImage};
 use js_sys::Uint8Array;
 use std::io::Cursor;
 use wasm_bindgen::prelude::*;
 
 #[wasm_bindgen]
 extern "C" {
-    pub fn alert(s: &str);
-
     #[wasm_bindgen(js_namespace = console)]
     fn log(s: &str);
-}
 
-#[wasm_bindgen]
-pub fn greet(name: &str) {
-    alert(&format!("Hello, {}!", name));
+    #[wasm_bindgen(js_namespace = console)]
+    fn error(s: &str);
 }
 
 #[wasm_bindgen]
@@ -28,13 +24,51 @@ pub fn read_bytes(bytes: &[u8]) -> Uint8Array {
     let image_result = read_image_bytes(buff);
     let image = match image_result {
         Ok(image) => image,
-        Err(err) => panic!("Error Opening Image: {:?}", err),
+        Err(err) => {
+            let msg = format!("Error Opening Image: {:?}", err);
+            error(msg.as_str());
+            panic!();
+        }
     };
 
     let conversion_result = write_image_to_jpeg(image);
     let conversion = match conversion_result {
         Ok(image) => image,
-        Err(err) => panic!("Error Converting Image: {:?}", err),
+        Err(err) => {
+            let msg = format!("Error Converting Image: {:?}", err);
+            error(msg.as_str());
+            panic!();
+        }
+    };
+
+    let arr = Uint8Array::from(conversion.as_slice());
+
+    return arr;
+}
+
+#[wasm_bindgen]
+pub fn create_image_from_rgb(bytes: &[u8], height: u32, width: u32) -> Uint8Array {
+    let pixels = bytes.to_vec();
+    let buf_option = RgbImage::from_raw(width, height, pixels);
+
+    let buf = match buf_option {
+        None => {
+            error("Image Buffer reading failed");
+            panic!();
+        }
+        Some(buf) => buf,
+    };
+
+    let image = DynamicImage::ImageRgb8(buf);
+
+    let conversion_result = write_image_to_jpeg(image);
+    let conversion = match conversion_result {
+        Ok(image) => image,
+        Err(err) => {
+            let msg = format!("Error Converting Image: {:?}", err);
+            error(msg.as_str());
+            panic!();
+        }
     };
 
     let arr = Uint8Array::from(conversion.as_slice());
@@ -54,11 +88,11 @@ pub fn read_image_bytes(bytes: Cursor<&[u8]>) -> Result<DynamicImage, ImageError
 }
 
 pub fn write_image_to_jpeg(image: DynamicImage) -> Result<Vec<u8>, ImageError> {
-    let mut bytes: Vec<u8> = Vec::new();
+    let mut dat: Vec<u8> = Vec::new();
     image.write_to(
-        &mut Cursor::new(&mut bytes),
+        &mut Cursor::new(&mut dat),
         image::ImageOutputFormat::Jpeg(50),
     )?;
 
-    Ok(bytes)
+    Ok(dat)
 }
