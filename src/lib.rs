@@ -27,9 +27,7 @@ extern "C" {
 
 #[derive(Serialize, Deserialize)]
 pub struct ImageOptionsInput {
-    pub identifier: Option<String>,
     pub new_format: Option<String>,
-    pub do_not_convert: Option<bool>,
     pub max_size: Option<f64>,
     pub image_quality: Option<f64>,
 }
@@ -68,7 +66,7 @@ pub fn process_image(bytes: &[u8], input: JsValue) -> Uint8Array {
     // Step 1, get the image as a Dynamic image
     let image_result = read_image_bytes(buff);
     let image = match image_result {
-        Ok(image) => image,
+        Ok(result) => result,
         Err(err) => {
             error(format!("Error Opening Image: {:?}", err).as_str());
             panic!();
@@ -79,7 +77,7 @@ pub fn process_image(bytes: &[u8], input: JsValue) -> Uint8Array {
 }
 
 #[wasm_bindgen]
-pub fn process_heif_image(bytes: &[u8], width: u32, height: u32, input: JsValue) -> Uint8Array {
+pub fn process_rgb_data(bytes: &[u8], width: u32, height: u32, input: JsValue) -> Uint8Array {
     let mut img_ops = parse_image_operations(input);
     img_ops.new_format = match img_ops.new_format {
         ImageType::Same => ImageType::Jpeg,
@@ -112,7 +110,7 @@ fn process_image_ops(image: &DynamicImage, image_operations: &ImageOptions) -> U
     // Step 3, Export the image as a new format
     let conversion_result = write_image(resized_img, image_operations);
     let conversion = match conversion_result {
-        Ok(image) => image,
+        Ok(result) => result,
         Err(err) => {
             let msg = format!("Error Converting Image: {:?}", err);
             error(msg.as_str());
