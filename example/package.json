@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "cp node_modules/@saschazar/wasm-heif/wasm_heif.wasm public/wasm_heif.wasm"
   },
   "devDependencies": {
     "typescript": "^5.0.2",

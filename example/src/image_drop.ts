@@ -1,7 +1,8 @@
 import wasm_heif from "@saschazar/wasm-heif";
+
 import init, {
-  read_bytes,
-  create_image_from_rgb,
+  process_image,
+  process_heif_image,
 } from "./pkg/rust_image_converter";
 
 export async function initDrop() {
@@ -42,7 +43,13 @@ async function readFileAsBytes(file: File) {
 
   const uint8Arr = new Uint8Array(buf);
 
-  readFileFromBytes(uint8Arr);
+  try {
+    const result = process_image(uint8Arr, { new_format: "jpeg" });
+    console.log("result", result);
+    makeFileFromBytes(result);
+  } catch (e) {
+    console.error(e);
+  }
 }
 
 async function readHeif(file: File) {
@@ -61,27 +68,20 @@ async function readHeif(file: File) {
     console.log(decodedValue.length);
     console.log(uint8Arr.length);
 
-    // readFileFromBytes(decodedValue);
-
-    const result = create_image_from_rgb(
+    const result = process_heif_image(
       decodedValue,
+      dimensions.width,
       dimensions.height,
-      dimensions.width
+      {
+        max_size: 1000,
+        new_format: "jpeg",
+      }
     );
 
     makeFileFromBytes(result);
   }
 
   heifModule.free();
-}
-
-async function readFileFromBytes(dat: Uint8Array) {
-  try {
-    const result = read_bytes(dat);
-    console.log("result", result);
-  } catch (e) {
-    console.error(e);
-  }
 }
 
 function makeFileFromBytes(bytesArray: Uint8Array) {
@@ -92,29 +92,14 @@ function makeFileFromBytes(bytesArray: Uint8Array) {
 
   const downloadEl = document.createElement("a");
   downloadEl.setAttribute("href", blobUrl);
-  downloadEl.setAttribute("download", "new_file.bin");
+  downloadEl.setAttribute("download", "new_file.jpg");
 
-  // downloadEl.style.display = "none";
+  downloadEl.style.display = "none";
   document.body.appendChild(downloadEl);
 
   downloadEl.innerHTML = "link";
 
-  // downloadEl.click();
+  downloadEl.click();
 
-  // document.body.removeChild(downloadEl);
-}
-
-function arrayBufferToBase64(uint8Arr: Uint8Array) {
-  console.log("array to buffer");
-  let binary = "";
-  const len = uint8Arr.byteLength;
-
-  console.log("iterating");
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(uint8Arr[i]);
-  }
-
-  console.log("Done iterating");
-
-  return btoa(binary);
+  document.body.removeChild(downloadEl);
 }
