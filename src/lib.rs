@@ -168,8 +168,8 @@ fn read_image_bytes(bytes: Cursor<&[u8]>) -> Result<DynamicImage, ImageError> {
 
     let width = "Width: ".to_string() + &image.width().to_string();
     let height = "Height: ".to_string() + &image.height().to_string();
-    log(width.as_str());
-    log(height.as_str());
+    // log(width.as_str());
+    // log(height.as_str());
 
     return Ok(image);
 }
